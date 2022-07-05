@@ -1,1 +1,75 @@
+function Main_Func_RippleEvent(WorkingPath,STD_Level,Sample_Freq,Duration_Range)
+%% 得到Ripple事件，需要先给定文件所在路径与基本的参数
+% Input:
+%       WorkingPath, nex5文件所在的路径
+%       STD_Level, 计算原始的Ripple事件，需要制定该值，一般为2，即事件需要满足大于2*std
+%       Sample_Freq, 数据的采样率
+%       Duration_Range, 筛选Ripple事件的持续时间，默认为20到300ms
+% Output
+%       每一步的计算都得到存储中间变量的.mat文件
+%       所有步骤为得到LFP文件（LFP*.mat）-存储原始Ripple文件（Event*.mat）-筛选后Ripple文件（SelectEvent_*.mat）
+%       以及最后包含所有ripple事件的开始，结束及持续时间的表格文件(*.xslx)
+% Example:
+%         Main_Func_RippleEvent('C:/',2,1000,[20 300]);
+% Copyright. Baolei_WB 2022.05.05
+
+
+%% Step 0
+%% 需要制定工作路径，需要包含nex5格式的数据
+% % WorkingPath = 'E:\FY_Project\Baozong_Ripple\SJZ';
+cd(WorkingPath);
+CurrNex5File = ls('*.nex5');
+disp('step 0 . 开始转换数据格式....');
+
+%% step 1
+%% 将nex5格式数据转化为matlab便于识别的LFP数据格式
+for ii = 2:size(CurrNex5File,1)
+    
+    Curr_LFPFile = ['LFP_',CurrNex5File(ii,:)];
+    for kk = 1:length(Curr_LFPFile)
+        if strcmp(Curr_LFPFile(kk),' ')
+            currpos = kk-6;
+            break;
+        end
+        if kk == length(Curr_LFPFile)
+            currpos = kk-5;
+        end
+    end
+    Curr_LFPFile_Mat = [Curr_LFPFile(1:currpos),'.mat'];
+    if exist(Curr_LFPFile_Mat,'file')
+        disp(['Already exist ',Curr_LFPFile_Mat]);
+    else
+        Nex5File2MatFile_Save(CurrNex5File(ii,:));
+    end
+end
+disp('step 1 . 完成数据格式转换!!');
+
+%% step 2
+%% 计算原始的SPW事件，只需要满足大于2*std
+%% 这一步将得到若干个Event,默认std level为2，采样率为1000
+% STD_Level = 2; %% 默认为2
+% Sample_Freq = 1000; %% 数据的采样率，默认为1000
+disp('step 2 .开始原始SPW计算...');
+
+Get_SPW(WorkingPath,STD_Level,Sample_Freq);
+
+disp('step 2 . 已完成原始SPW计算...');
+
+%% step 3
+%% 选择原始的SPW事件，只需要满足大于2*std
+%% 选择持续时间在20ms到300ms之间的事件
+% Duration_Range = [20 300]; % 20ms 到 300 ms
+disp(['step 3 . 开始计算筛选的SPW事件...','(',num2str(Duration_Range(1)),'ms ~ ',num2str(Duration_Range(2)),'ms)']);
+
+Get_Selected_SPW(WorkingPath,STD_Level,Duration_Range,Sample_Freq)
+disp('step 3 . 已得到筛选的SPW事件...');
+
+%% step 4
+%% 保存Dutaion，onset，offset等时间参数到xlsx表格中
+disp('step 4 . 开始存入表格...');
+
+save_Event_As_xlsx(WorkingPath,STD_Level)
+disp(['step 4 . 已完成表格...请检查workingpath下的',num2str(STD_Level),'std文件夹']);
+
+
 
